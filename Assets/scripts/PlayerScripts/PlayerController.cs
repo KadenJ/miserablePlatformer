@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -25,11 +27,10 @@ public class PlayerController : MonoBehaviour
     float coyoteTimer;
     [SerializeField] LayerMask groundLayer;
     [SerializeField] Transform groundCheck;
-    #endregion
-
-    
     float buffer = .3f; //for all inputs
     float bufferTimer;
+    #endregion
+
 
     private void Start()
     {
@@ -38,7 +39,8 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if(HMovement == 0)
+        #region movement
+        if (HMovement == 0)
         {
             moveSpeed = Mathf.MoveTowards(rb.linearVelocityX, 0, friction * Time.deltaTime);
             rb.linearVelocity = new Vector2(moveSpeed, rb.linearVelocityY);
@@ -64,7 +66,8 @@ public class PlayerController : MonoBehaviour
         {
             coyoteTimer -= Time.deltaTime;
         }
-        
+        #endregion
+
     }
 
     public void Move(InputAction.CallbackContext ctx)
@@ -107,6 +110,50 @@ public class PlayerController : MonoBehaviour
             coyoteTimer = 0;
         }
     }
+
+    #region interaction field
+    private IInteractables focus = null;
+    private List<IInteractables> objectsInRange = new List<IInteractables>();
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        //if component has IInteractable, sets interactableInRange to object
+        if (collision.TryGetComponent(out IInteractables interactable) && interactable.canInteract)
+        {
+            //newest object becomes focus
+            focus = interactable;
+            objectsInRange.Add(interactable);
+        }
+    }
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.TryGetComponent(out IInteractables interactable))
+        {
+            objectsInRange.Remove(interactable);
+            if (interactable == focus)
+            {
+                focus = null;
+                if (objectsInRange.Count > 0)
+                {
+                    focus = objectsInRange.First();
+                }
+            }
+            //search for othe objects in collider and set to interactableInRange
+            
+
+        }
+    }
+
+    public void interact(InputAction.CallbackContext ctx)
+    {
+        //objectInFocus.interact
+        if (ctx.performed)
+        {
+            //if interactableInRange exists, call Interact
+            focus?.Interact(); 
+        }
+
+    }
+    #endregion
 
     private bool IsGrounded()
     {
