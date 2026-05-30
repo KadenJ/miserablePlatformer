@@ -4,12 +4,12 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.LowLevelPhysics2D;
+using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
-    //code coyote time and input buffer
 
-
+    [SerializeField] AbilityManager am;
     [SerializeField] Rigidbody2D rb;
 
     #region movement
@@ -30,11 +30,16 @@ public class PlayerController : MonoBehaviour
     float buffer = .3f; //for all inputs
     float bufferTimer;
     #endregion
+    GameObject arm;
 
 
     private void Start()
     {
         Mathf.Clamp(moveSpeed, -maxSpeed, maxSpeed);
+        am = Instantiate(am);
+        am.name = "AbilityManager";
+
+        arm = GameObject.Find("arm");
     }
 
     private void FixedUpdate()
@@ -83,12 +88,14 @@ public class PlayerController : MonoBehaviour
         if (isRight == true && HMovement < 0)
         {
             isRight = false;
-            GetComponent<SpriteRenderer>().flipX = true;
+            transform.localScale = new Vector3(-1,1,1);
+            //GetComponent<SpriteRenderer>().flipX = true;
         }
         else if (isRight == false && HMovement > 0)
         {
             isRight = true;
-            GetComponent<SpriteRenderer>().flipX = false;
+            transform.localScale = new Vector3(1, 1, 1);
+            //GetComponent<SpriteRenderer>().flipX = false;
         }
     }
 
@@ -142,14 +149,29 @@ public class PlayerController : MonoBehaviour
 
         }
     }
-
     public void interact(InputAction.CallbackContext ctx)
     {
         //objectInFocus.interact
         if (ctx.performed)
         {
-            //if interactableInRange exists, call Interact
-            focus?.Interact(); 
+            //if object in focus, call Interact script
+            if(am.itemHeld == false)
+            {
+                focus?.Interact();
+            }
+            else
+            {
+                GameObject throwable = am.getHeldItem();
+                //throwable.transform.position = Vector2.zero;
+                throwable.transform.position = arm.transform.position;
+                throwable.GetComponent<Rigidbody2D>().AddForce(new Vector2(transform.localScale.x * am.throwPower, 0), ForceMode2D.Impulse);
+
+
+
+                print("dropped object");
+                am.setHeldItem(); //no parameter set GO to null
+            }
+                
         }
 
     }
